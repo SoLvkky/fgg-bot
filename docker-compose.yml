@@ -1,0 +1,19 @@
+services:
+  mongo:
+    image: mongo:8
+    container_name: fgg_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  bot:
+    build: .
+    container_name: fgg_bot
+    restart: unless-stopped
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:
