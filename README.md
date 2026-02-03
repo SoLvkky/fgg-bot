@@ -2,6 +2,11 @@
 
 A Discord bot for automatic notifications about free games on Epic Games and Steam.
 
+## Live Demo
+
+Live Demo available via Verified Discord Bot:
+[Invite to your server](https://tinyurl.com/fgg-discord)
+
 ## Features
 
 - Automatic notifications about free games
