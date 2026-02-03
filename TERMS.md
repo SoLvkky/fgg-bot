@@ -12,10 +12,12 @@ FGG Bot is a Discord bot that automatically tracks and notifies users about free
 
 ## 3. Use of the Bot
 
-3.1 License
+### 3.1 License
+
 We grant you a limited, non-exclusive, non-transferable, revocable license to use the Bot for personal, non-commercial purposes within Discord servers.
 
-3.2 Acceptable Use
+### 3.2 Acceptable Use
+
 You agree to use the Bot in compliance with Discord's Terms of Service and Community Guidelines. You may not:
 
 Use the Bot to spam, harass, or abuse other users
