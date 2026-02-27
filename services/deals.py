@@ -1,7 +1,9 @@
 import re
 
 from aiohttp import ClientSession
+from bot import logger
 from bs4 import BeautifulSoup
+from database import get_game
 from datetime import datetime, timedelta
 
 EPIC_API_URL = "https://store-site-backend-static-ipv4.ak.epicgames.com/freeGamesPromotions?locale=en-US"
@@ -26,12 +28,14 @@ async def get_deals(session: ClientSession, platform):
             return await get_epic_deals(session)   
 
 async def get_expiry(session: ClientSession, id: int):
-    async with session.get(url=f"{STEAM_BASE_URL}{id}", headers=default_headers) as response:
+    async with session.get(url=f"{STEAM_BASE_URL}{id}", headers=default_headers) as response:      
         data = BeautifulSoup(await response.text(), "html.parser")
+        logger.info(f"Request sent to {response.url}. Status: {response.status}")
 
-        expiry = data.select_one("p.game_purchase_discount_quantity").text.strip()
+        expiry = data.select_one("p.game_purchase_discount_quantity")
         
         if expiry:
+            expiry = expiry.text.strip()
             match = re.search(r'before (\w{3} \d{1,2}) @ (\d{1,2}:\d{2})(am|pm)', expiry)
 
             if match:
@@ -54,6 +58,7 @@ async def get_expiry(session: ClientSession, id: int):
 async def get_steam_deals(session: ClientSession):
     async with session.get(url=STEAM_FREE_URL, headers=default_headers) as response:
         data = BeautifulSoup(await response.text(), "html.parser")
+        logger.info(f"Request sent to {response.url}. Status: {response.status}")
         ids = []
 
         try:
@@ -61,13 +66,16 @@ async def get_steam_deals(session: ClientSession):
 
             if search_result:
                 for i in search_result:
-                    steam_id = i.get("data-ds-appid")
-                    ids.append(steam_id)
+                    link = '/'.join(i.get("href").split("/")[:-2])
+                    new_game = get_game(link)
+                    if new_game:
+                        steam_id = i.get("data-ds-appid")
+                        ids.append(steam_id)
             
             return ids
 
         except Exception:
-            return []
+            return ids
             
 async def get_game_via_steam(session: ClientSession, game: str):
     params = {
@@ -77,6 +85,7 @@ async def get_game_via_steam(session: ClientSession, game: str):
 
     async with session.get(url=STEAM_SEARCH_URL, params=params, headers=default_headers) as response:
         data = BeautifulSoup(await response.text(), "html.parser")
+        logger.info(f"Request sent to {response.url}. Status: {response.status}")
 
         try:
             search_result = data.select_one("div#search_resultsRows").select_one("a")
@@ -103,6 +112,7 @@ async def get_steam_details(session: ClientSession, ids: list):
 
         async with session.get(url=url, params=params, headers=default_headers) as response:
             data = await response.json()
+            logger.info(f"Request sent to {response.url}. Status: {response.status}")
             status = data[str(id)]["success"]
             if status:
                 result = data[str(id)]["data"]
@@ -133,12 +143,18 @@ async def get_steam_details(session: ClientSession, ids: list):
 async def get_epic_deals(session: ClientSession):
     async with session.get(url=EPIC_API_URL, headers=default_headers) as response:
         data = await response.json()
+        logger.info(f"Request sent to {response.url}. Status: {response.status}")
         result = data["data"]["Catalog"]["searchStore"]["elements"]
 
         games = []
 
         for i in result:
-            if (i.get("status") == "ACTIVE" and i.get("price").get("totalPrice").get("discountPrice") == 0):
+            if (
+                i.get("status") == "ACTIVE" and 
+                i.get("price").get("totalPrice").get("discountPrice") == 0 and
+                i.get("offerType") == "BASE_GAME" and
+                i.get("promotions").get("promotionalOffers")
+            ):
                 title = i.get("title")
                 poster = i.get("keyImages")[0].get("url")
                 desc = i.get("description").strip()
