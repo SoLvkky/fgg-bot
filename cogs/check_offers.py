@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import discord
 
 from bot import logger
@@ -8,6 +9,8 @@ from discord.ext import commands, tasks
 from utils import check_games
 
 class Monitor(commands.Cog):
+    times = [datetime.time(hour=h, minute=31) for h in range(0, 24, 1)]
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.channel_id = 1421545763699298496
@@ -16,7 +19,7 @@ class Monitor(commands.Cog):
     def cog_unload(self):
         self.check_offers.cancel()
     
-    @tasks.loop(minutes=10)
+    @tasks.loop(time=times)
     async def check_offers(self):
         res = await check_games()
         if not res:
